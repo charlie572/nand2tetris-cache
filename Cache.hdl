@@ -1,0 +1,42 @@
+// 64 byte cache lines => 4 word lines
+// 512 bytes of cache => 8 locations
+
+// TODO: add cache flush bit
+// TODO: figure out error when testing
+
+CHIP Cache {
+    IN in[16], addressIn[15], load, memoryIn[16];
+    OUT out[16], finished, addressOut[15], memoryOut[16];
+
+    PARTS:
+    // check for hit
+    Equal16(a[0..9]=tag, b[0..9]=addressIn[5..14], out=tagCheck);
+    And(a=tagCheck, b=valid, out=hit, out=finished);
+    Not(in=hit, out=miss);
+
+    Mux16(a=false, b=data, sel=hit, out=out);
+
+    // cache miss
+    PC(inc=miss, reset=endCacheMiss, out[0..1]=wordSelect);
+    Mux16(a=false, b[0..1]=wordSelect, b[2..14]=addressIn[2..14], sel=miss, out[0..14]=addressOut);
+    DMux4Way(in=miss, sel=wordSelect, a=dataLoad0, b=dataLoad1, c=dataLoad2, d=dataLoad3);
+    Equal16(a[0..1]=true, b[0..1]=wordSelect, out=endCacheMiss);
+
+
+
+
+    // ******************* memory ********************
+
+    // cache data
+    RAM8(in=memoryIn, load=dataLoad0, address=addressIn[2..4], out=outData0);
+    RAM8(in=memoryIn, load=dataLoad1, address=addressIn[2..4], out=outData1);
+    RAM8(in=memoryIn, load=dataLoad2, address=addressIn[2..4], out=outData2);
+    RAM8(in=memoryIn, load=dataLoad3, address=addressIn[2..4], out=outData3);
+    Mux4Way16(a=outData0, b=outData1, c=outData2, d=outData3, sel=addressIn[0..1], out=data);
+
+    // tags
+    RAM8(in[0..9]=addressIn[5..14], load=endCacheMiss, address=addressIn[2..4], out[0..9]=tag);
+
+    // valid bits
+    RAM8(in[0]=true, load=endCacheMiss, address=addressIn[2..4], out[0]=valid);
+}
