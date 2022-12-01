@@ -1,9 +1,6 @@
 // 64 byte cache lines => 4 word lines
 // 512 bytes of cache => 8 locations
 
-// TODO: add cache flush bit
-// TODO: figure out error when testing
-
 CHIP Cache {
     IN in[16], addressIn[15], loadIn, memoryIn[16];
     OUT out[16], finished, addressOut[15], memoryOut[16], loadOut;

@@ -226,3 +226,53 @@ while finished = 0 {
 tock,
 output;
 
+// overwrite a value
+
+set load 1,
+set in 50,
+set address 42,
+tick;
+while finished = 0 {
+    tock, tick;
+}
+tock;
+
+set load 0,
+tick,
+tock;
+
+// read it
+
+set address 42,
+tick,
+while finished = 0 {
+    tock, tick;
+}
+tock,
+output;
+
+// overwrite a value
+
+set load 1,
+set in 70,
+set address 100,
+tick;
+while finished = 0 {
+    tock, tick;
+}
+tock;
+
+set load 0,
+tick,
+tock;
+
+// read it
+
+set address 100,
+tick,
+while finished = 0 {
+    tock, tick;
+}
+tock,
+output;
+
