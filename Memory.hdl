@@ -1,0 +1,9 @@
+CHIP Memory {
+    IN in[16], load, address[15];
+    OUT out[16], finished;
+
+    PARTS:
+
+    Cache(in=in, addressIn=address, loadIn=load, memoryIn=cacheMemIn, out=out, finished=finished, addressOut=cacheAddrOut, memoryOut=cacheMemOut, loadOut=cacheLoadOut);
+    RAM32K(in=cacheMemOut, address=cacheAddrOut, load=cacheLoadOut, out=cacheMemIn);
+}
