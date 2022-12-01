@@ -26,15 +26,15 @@ CHIP Cache {
     Equal16(a[0..1]=true, b[0..1]=wordSelect, out=endCacheMiss);
 
     // write through
-    And(a=hit, b=UnprocessedWrite, out=write, out=loadOut);
-    DMux4Way(in=write, sel=addressIn[0..1], a=dataLoad01, b=dataLoad11, c=dataLoad21, d=dataLoad31);
+    DMux4Way(in=UnprocessedWrite, sel=addressIn[0..1], a=dataLoad01, b=dataLoad11, c=dataLoad21, d=dataLoad31);
 
     Mux16(a=in, b=false, sel=NoLoadOrWritten, out=memoryOut);
 
+    // TODO: maybe there is something wrong with this line?
     DFF(in=loadIn, out=written);
 
     Or(a=notLoadIn, b=written, out=NoLoadOrWritten);
-    Not(in=NoLoadOrWritten, out=UnprocessedWrite);
+    Not(in=NoLoadOrWritten, out=UnprocessedWrite, out=loadOut);
     And(a=hit, b=NoLoadOrWritten, out=finished);
 
     // addressOut

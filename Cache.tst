@@ -124,17 +124,40 @@ set in 0,
 set loadIn 0,
 tick,
 output;
+tock,
+output;
 
-// test write hit
-set in 51,
-set addressIn 43,
+// test write miss
+set in 70,
+set addressIn 100,
 set loadIn 1,
+tick,
+output;
+set memoryIn 70,
 tock,
 output;
 tick,
 output;
-
-set in 0,
-set loadIn 0,
+set memoryIn 81,
 tock,
+output;
+tick,
+output;
+set memoryIn 82,
+tock,
+output;
+tick,
+output;
+set memoryIn 83,
+tock,
+output;
+tick,
+output;
+set memoryIn 0,
+tock,
+output;
+
+set loadIn 0,
+set in 0,
+tick,
 output;
