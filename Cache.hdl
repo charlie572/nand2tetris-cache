@@ -5,22 +5,43 @@
 // TODO: figure out error when testing
 
 CHIP Cache {
-    IN in[16], addressIn[15], load, memoryIn[16];
-    OUT out[16], finished, addressOut[15], memoryOut[16];
+    IN in[16], addressIn[15], loadIn, memoryIn[16];
+    OUT out[16], finished, addressOut[15], memoryOut[16], loadOut;
 
     PARTS:
     // check for hit
     Equal16(a[0..9]=tag, b[0..9]=addressIn[5..14], out=tagCheck);
-    And(a=tagCheck, b=valid, out=hit, out=finished);
+    And(a=tagCheck, b=valid, out=hit);
     Not(in=hit, out=miss);
 
-    Mux16(a=false, b=data, sel=hit, out=out);
+    // output data
+    Not(in=loadIn, out=notLoadIn);
+    And(a=hit, b=notLoadIn, out=outputData);
+    Mux16(a=false, b=data, sel=outputData, out=out);
 
     // cache miss
-    PC(inc=miss, reset=endCacheMiss, out[0..1]=wordSelect);
-    Mux16(a=false, b[0..1]=wordSelect, b[2..14]=addressIn[2..14], sel=miss, out[0..14]=addressOut);
-    DMux4Way(in=miss, sel=wordSelect, a=dataLoad0, b=dataLoad1, c=dataLoad2, d=dataLoad3);
+    And(a=miss, b=NoLoadOrWritten, out=readingLine);
+    PC(inc=readingLine, reset=endCacheMiss, out[0..1]=wordSelect);
+    DMux4Way(in=miss, sel=wordSelect, a=dataLoad00, b=dataLoad10, c=dataLoad20, d=dataLoad30);
     Equal16(a[0..1]=true, b[0..1]=wordSelect, out=endCacheMiss);
+
+    // write through
+    And(a=hit, b=UnprocessedWrite, out=write, out=loadOut);
+    DMux4Way(in=write, sel=addressIn[0..1], a=dataLoad01, b=dataLoad11, c=dataLoad21, d=dataLoad31);
+
+    Mux16(a=in, b=false, sel=NoLoadOrWritten, out=memoryOut);
+
+    DFF(in=loadIn, out=written);
+
+    Or(a=notLoadIn, b=written, out=NoLoadOrWritten);
+    Not(in=NoLoadOrWritten, out=UnprocessedWrite);
+    And(a=hit, b=NoLoadOrWritten, out=finished);
+
+    // addressOut
+    Mux16(a[0..1]=wordSelect, a[2..14]=addressIn[2..14], b=false, sel=hit, out=gatedReadMissAddress);
+    Mux16(a=gatedReadMissAddress, b[0..14]=addressIn, sel=UnprocessedWrite, out[0..14]=addressOut);
+
+    
 
 
 
@@ -28,10 +49,15 @@ CHIP Cache {
     // ******************* memory ********************
 
     // cache data
-    RAM8(in=memoryIn, load=dataLoad0, address=addressIn[2..4], out=outData0);
-    RAM8(in=memoryIn, load=dataLoad1, address=addressIn[2..4], out=outData1);
-    RAM8(in=memoryIn, load=dataLoad2, address=addressIn[2..4], out=outData2);
-    RAM8(in=memoryIn, load=dataLoad3, address=addressIn[2..4], out=outData3);
+    Or(a=dataLoad00, b=dataLoad01, out=dataLoad0);
+    Or(a=dataLoad10, b=dataLoad11, out=dataLoad1);
+    Or(a=dataLoad20, b=dataLoad21, out=dataLoad2);
+    Or(a=dataLoad30, b=dataLoad31, out=dataLoad3);
+    Mux16(a=memoryIn, b=in, sel=UnprocessedWrite, out=cacheDataIn);
+    RAM8(in=cacheDataIn, load=dataLoad0, address=addressIn[2..4], out=outData0);
+    RAM8(in=cacheDataIn, load=dataLoad1, address=addressIn[2..4], out=outData1);
+    RAM8(in=cacheDataIn, load=dataLoad2, address=addressIn[2..4], out=outData2);
+    RAM8(in=cacheDataIn, load=dataLoad3, address=addressIn[2..4], out=outData3);
     Mux4Way16(a=outData0, b=outData1, c=outData2, d=outData3, sel=addressIn[0..1], out=data);
 
     // tags
