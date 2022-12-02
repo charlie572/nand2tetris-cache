@@ -27,7 +27,6 @@ CHIP Cache {
 
     Mux16(a=in, b=false, sel=NoLoadOrWritten, out=memoryOut);
 
-    // TODO: maybe there is something wrong with this line?
     DFF(in=loadIn, out=written);
 
     Or(a=notLoadIn, b=written, out=NoLoadOrWritten);
