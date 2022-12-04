@@ -1,5 +1,5 @@
-// 64 byte cache lines => 4 word lines
-// 512 bytes of cache => 8 locations
+// Cache lines are 64 bytes or 4 words long.
+// There are 8 lines in the cache.
 
 CHIP Cache {
     IN in[16], addressIn[15], loadIn, memoryIn[16];
@@ -17,21 +17,28 @@ CHIP Cache {
     Mux16(a=false, b=data, sel=outputData, out=out);
 
     // cache miss
+    // Load the cache line. Write the tag and the valid bit at the same time as
+    // the last word in read.
     And(a=miss, b=NoLoadOrWritten, out=readingLine);
     PC(inc=readingLine, reset=endCacheMiss, out[0..1]=wordSelect);
     DMux4Way(in=miss, sel=wordSelect, a=dataLoad00, b=dataLoad10, c=dataLoad20, d=dataLoad30);
     Equal16(a[0..1]=true, b[0..1]=wordSelect, out=endCacheMiss);
 
     // write through
+    
+    // write to the cache
     DMux4Way(in=UnprocessedWrite, sel=addressIn[0..1], a=dataLoad01, b=dataLoad11, c=dataLoad21, d=dataLoad31);
 
+    // write to memory
     Mux16(a=in, b=false, sel=NoLoadOrWritten, out=memoryOut);
 
+    // Assume the memory has finished being written to on the next cycle.
     DFF(in=loadIn, out=written);
 
     Or(a=notLoadIn, b=written, out=NoLoadOrWritten);
     Not(in=NoLoadOrWritten, out=UnprocessedWrite, out=loadOut);
     And(a=hit, b=NoLoadOrWritten, out=finished);
+
 
     // addressOut
     Mux16(a[0..1]=wordSelect, a[2..14]=addressIn[2..14], b=false, sel=hit, out=gatedReadMissAddress);
@@ -45,15 +52,21 @@ CHIP Cache {
     // ******************* memory ********************
 
     // cache data
+
     Or(a=dataLoad00, b=dataLoad01, out=dataLoad0);
     Or(a=dataLoad10, b=dataLoad11, out=dataLoad1);
     Or(a=dataLoad20, b=dataLoad21, out=dataLoad2);
     Or(a=dataLoad30, b=dataLoad31, out=dataLoad3);
     Mux16(a=memoryIn, b=in, sel=UnprocessedWrite, out=cacheDataIn);
+
+    // The first RAM chip holds the first word of each cache line. The second
+    // holds the second word etc.
     RAM8(in=cacheDataIn, load=dataLoad0, address=addressIn[2..4], out=outData0);
     RAM8(in=cacheDataIn, load=dataLoad1, address=addressIn[2..4], out=outData1);
     RAM8(in=cacheDataIn, load=dataLoad2, address=addressIn[2..4], out=outData2);
     RAM8(in=cacheDataIn, load=dataLoad3, address=addressIn[2..4], out=outData3);
+
+    // Select a word from the cache line.
     Mux4Way16(a=outData0, b=outData1, c=outData2, d=outData3, sel=addressIn[0..1], out=data);
 
     // tags

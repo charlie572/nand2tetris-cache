@@ -1,5 +1,6 @@
-// 64 byte cache lines => 4 word lines
-// 512 bytes of cache => 8 locations
+// Cache lines are 64 bytes or 4 words long.
+// There are 8 lines in the cache.
+// The cache is 2-way set-associative.
 
 CHIP SetAssociativeCache {
     IN in[16], addressIn[15], loadIn, memoryIn[16];
@@ -51,11 +52,13 @@ CHIP SetAssociativeCache {
     // ******************* memory ********************
 
     // cache data
+
     Or(a=dataLoad00, b=dataLoad01, out=dataLoad0);
     Or(a=dataLoad10, b=dataLoad11, out=dataLoad1);
     Or(a=dataLoad20, b=dataLoad21, out=dataLoad2);
     Or(a=dataLoad30, b=dataLoad31, out=dataLoad3);
 
+    // Choose which of the two location in the set to store in.
     Mux(a=invalid1, b=hit1, sel=hit, out=loadSelect);
     DMux(in=dataLoad0, sel=loadSelect, a=dataLoadb0, b=dataLoada0);
     DMux(in=dataLoad1, sel=loadSelect, a=dataLoadb1, b=dataLoada1);
@@ -74,6 +77,7 @@ CHIP SetAssociativeCache {
     RAM8(in=cacheDataIn, load=dataLoadb2, address=addressIn[2..4], out=outDataB2);
     RAM8(in=cacheDataIn, load=dataLoadb3, address=addressIn[2..4], out=outDataB3);
 
+    // Choose which of the two locations in the set to read from.
     Mux4Way16(a=outDataA0, b=outDataA1, c=outDataA2, d=outDataA3, sel=addressIn[0..1], out=data1);
     Mux4Way16(a=outDataB0, b=outDataB1, c=outDataB2, d=outDataB3, sel=addressIn[0..1], out=data2);
     Mux16(a=data1, b=data2, sel=hit2, out=data);
