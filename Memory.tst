@@ -58,19 +58,6 @@ tick,
 tock;
 
 set load 1,
-set in 4,
-set address 11,
-tick;
-while finished = 0 {
-    tock, tick;
-}
-tock;
-
-set load 0,
-tick,
-tock;
-
-set load 1,
 set in 8,
 set address 28,
 tick;
@@ -202,6 +189,7 @@ while finished = 0 {
 tock,
 output;
 
+// This will replace a cache line if it is a direct-mapped cache.
 set address 42,
 tick,
 while finished = 0 {
@@ -219,6 +207,17 @@ tock,
 output;
 
 set address 41,
+tick,
+while finished = 0 {
+    tock, tick;
+}
+tock,
+output;
+
+// This will replace a cache line again. If it is a direct-mapped
+// cache. It will take multiple cycles. If it is set-associative,
+// it will only take one.
+set address 10,
 tick,
 while finished = 0 {
     tock, tick;

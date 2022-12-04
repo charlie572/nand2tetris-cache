@@ -24,11 +24,12 @@ CHIP SetAssociativeCache {
     // cache miss
     And(a=miss, b=NoLoadOrWritten, out=readingLine);
     PC(inc=readingLine, reset=endCacheMiss, out[0..1]=wordSelect);
-    DMux4Way(in=miss, sel=wordSelect, a=dataLoad00, b=dataLoad10, c=dataLoad20, d=dataLoad30);
+    DMux4Way(in=readingLine, sel=wordSelect, a=dataLoad00, b=dataLoad10, c=dataLoad20, d=dataLoad30);
     Equal16(a[0..1]=true, b[0..1]=wordSelect, out=endCacheMiss);
 
     // write through
-    DMux4Way(in=UnprocessedWrite, sel=addressIn[0..1], a=dataLoad01, b=dataLoad11, c=dataLoad21, d=dataLoad31);
+    And(a=UnprocessedWrite, b=hit, out=WriteThroughToCache);
+    DMux4Way(in=WriteThroughToCache, sel=addressIn[0..1], a=dataLoad01, b=dataLoad11, c=dataLoad21, d=dataLoad31);
 
     Mux16(a=in, b=false, sel=NoLoadOrWritten, out=memoryOut);
 
@@ -55,10 +56,11 @@ CHIP SetAssociativeCache {
     Or(a=dataLoad20, b=dataLoad21, out=dataLoad2);
     Or(a=dataLoad30, b=dataLoad31, out=dataLoad3);
 
-    DMux(in=dataLoad0, sel=valid1, a=dataLoada0, b=dataLoadb0);
-    DMux(in=dataLoad1, sel=valid1, a=dataLoada1, b=dataLoadb1);
-    DMux(in=dataLoad2, sel=valid1, a=dataLoada2, b=dataLoadb2);
-    DMux(in=dataLoad3, sel=valid1, a=dataLoada3, b=dataLoadb3);
+    Mux(a=invalid1, b=hit1, sel=hit, out=loadSelect);
+    DMux(in=dataLoad0, sel=loadSelect, a=dataLoadb0, b=dataLoada0);
+    DMux(in=dataLoad1, sel=loadSelect, a=dataLoadb1, b=dataLoada1);
+    DMux(in=dataLoad2, sel=loadSelect, a=dataLoadb2, b=dataLoada2);
+    DMux(in=dataLoad3, sel=loadSelect, a=dataLoadb3, b=dataLoada3);
 
     Mux16(a=memoryIn, b=in, sel=UnprocessedWrite, out=cacheDataIn);
 
@@ -77,12 +79,14 @@ CHIP SetAssociativeCache {
     Mux16(a=data1, b=data2, sel=hit2, out=data);
 
     // tags
-    DMux(in=endCacheMiss, sel=valid1, a=loadTag1, b=loadTag2);
-    RAM8(in[0..9]=addressIn[5..14], load=endCacheMiss, address=addressIn[2..4], out[0..9]=tag1);
-    RAM8(in[0..9]=addressIn[5..14], load=endCacheMiss, address=addressIn[2..4], out[0..9]=tag2);
+    DMux(in=endCacheMiss, sel=loadSelect, a=loadTag2, b=loadTag1);
+    RAM8(in[0..9]=addressIn[5..14], load=loadTag1, address=addressIn[2..4], out[0..9]=tag1);
+    RAM8(in[0..9]=addressIn[5..14], load=loadTag2, address=addressIn[2..4], out[0..9]=tag2);
 
     // valid bits
-    DMux(in=true, sel=valid1, a=setValid1, b=setValid2);
+    DMux(in=endCacheMiss, sel=loadSelect, a=setValid2, b=setValid1);
     RAM8(in[0]=true, load=setValid1, address=addressIn[2..4], out[0]=valid1);
     RAM8(in[0]=true, load=setValid2, address=addressIn[2..4], out[0]=valid2);
+    Not(in=valid1, out=invalid1);
+    Not(in=valid2, out=invalid2);
 }
